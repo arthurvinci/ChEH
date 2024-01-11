@@ -1,2 +1,2 @@
 # ChEH
-Une bilbiothèque de chiffrement entièrement homomorphique
+Une bibliothèque de chiffrement entièrement homomorphique
