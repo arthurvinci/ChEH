@@ -8,13 +8,13 @@ from BinaryGate import BinaryGate
 from FHEScheme import FHEScheme
 from WireGate import WireGate
 
-from math_utils import generate_error_matrix, generate_error_vector, generate_gadget_matrix, generate_random_matrix, \
+from LWE.utils import generate_error_matrix, generate_error_vector, generate_gadget_matrix, generate_random_matrix, \
     bit_decomp
-from NOTGate import NOTGate
-from NANDGate import NANDGate
-from ANDGate import ANDGate
-from ORGate import ORGate
-from XORGate import XORGate
+from LWE.Gates.NOTGate import NOTGate
+from LWE.Gates.NANDGate import NANDGate
+from LWE.Gates.ANDGate import ANDGate
+from LWE.Gates.ORGate import ORGate
+from LWE.Gates.XORGate import XORGate
 
 PublicKeyType = np.ndarray
 PrivateKeyType = np.ndarray
@@ -41,13 +41,15 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         self.q = parameters[0]
         self.n = parameters[1]
         self.error_function = parameters[2]
-        self.m = math.ceil(self.n * math.log2(self.q))
+        self.m = self.n * math.ceil(math.log2(self.q))
         self.G = generate_gadget_matrix(self.q, self.n)
+
+        self._init_gates()
 
         A = generate_random_matrix(self.m, self.n - 1, self.q)
         e = generate_error_vector(self.m, self.error_function)
         s = generate_error_vector(self.n - 1, self.error_function)
-        b = A @ s + e  # @ is the matrix multiplication operator in Python
+        b = (- A @ s) + e  # @ is the matrix multiplication operator in Python
 
         # Concatenates b
         public_key = np.concatenate((b, A), axis=1)
@@ -60,8 +62,9 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
     def encrypt(self, public_key: PublicKeyType, bit: bool) -> CypheredTextType:
 
         # Dimension check for the public_key
-        if public_key.shape != (self.m, self.n + 1):
-            raise ValueError("Invalid dimensions for the public key.")
+        if public_key.shape != (self.m, self.n):
+            raise ValueError(
+                f"Invalid dimensions for the public key: should be a matrix of {self.m} x {self.n} elements")
 
         T = generate_error_matrix(self.m, self.m, self.error_function)
         F = generate_error_matrix(self.m, self.n, self.error_function)
@@ -73,24 +76,25 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
 
         return CT % self.q
 
-    def decrypt(self, secret_key: PrivateKeyType, ct: CypheredTextType) -> bool:
+    def decrypt(self, secret_key: PrivateKeyType, CT: CypheredTextType) -> bool:
 
         # Dimension check for the secret key
-        if secret_key.shape != (self.m, 1):
-            raise ValueError("Invalid dimensions for the secret key: should be a vector of {} elements".format(self.m))
+        if secret_key.shape != (self.n, 1):
+            raise ValueError(f"Invalid dimensions for the secret key: should be a vector of {self.m} elements")
 
         # Dimension check for the cyphered text
-        if ct.shape != (self.m, self.n):
+        if CT.shape != (self.m, self.n):
             raise ValueError(
-                "Invalid dimensions for the cyphered text: should be a matrix of {} x {} elements".format(self.m,
-                                                                                                          self.n))
+                f"Invalid dimensions for the cyphered text: should be a vector of {self.m} x {self.n} elements (input "
+                f"is {CT.shape[0]} x {CT.shape[1]})")
 
-        raw_decrypt = (ct @ secret_key) % self.q
+        raw_decrypt = (CT @ secret_key) % self.q
 
-        # We look a the last
-        log_q = self.m / self.n
+        # print(raw_decrypt)
 
-        return abs(raw_decrypt[log_q]) > self.q / 4
+        log_q = self.m // self.n
+
+        return (raw_decrypt[log_q - 1] > self.q / 4) and (raw_decrypt[log_q - 1] < 3 * self.q / 4)
 
     def evaluate(self, binary_circuit: List[List[str]], inputs: List[CypheredTextType]) -> CypheredTextType:
 
@@ -127,5 +131,16 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         self.gates["wire"] = WireGate[CypheredTextType]()
 
     def _mul(self, CT1: CypheredTextType, CT2: CypheredTextType) -> CypheredTextType:
+
+        if CT1.shape != (self.m, self.n):
+            raise ValueError(
+                f"Invalid dimensions for the cyphered text: should be a vector of {self.m} x {self.n} elements (input "
+                f"is {CT1.shape[0]} x {CT1.shape[1]})")
+
+        if CT2.shape != (self.m, self.n):
+            raise ValueError(
+                f"Invalid dimensions for the cyphered text: should be a vector of {self.m} x {self.n} elements (input "
+                f"is {CT2.shape[0]} x {CT2.shape[1]})")
+
         CT1_bit = bit_decomp(CT1, self.q)
         return (CT1_bit @ CT2) % self.q

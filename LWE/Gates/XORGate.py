@@ -1,12 +1,12 @@
 from typing import TypeVar, List
 
 from BinaryGate import BinaryGate
-from LWE.NANDGate import NANDGate
+from LWE.Gates.NANDGate import NANDGate
 
 CypheredTextType = TypeVar('CypheredTextType')
 
 
-class ORGate(BinaryGate[CypheredTextType]):
+class XORGate(BinaryGate[CypheredTextType]):
 
     def __init__(self, NAND: NANDGate[CypheredTextType]):
         self.NAND = NAND
@@ -15,6 +15,8 @@ class ORGate(BinaryGate[CypheredTextType]):
         return 2
 
     def evaluate(self, inputs: List[CypheredTextType]) -> CypheredTextType:
-        temp_1 = self.NAND.evaluate([inputs[0], inputs[0]])
-        temp_2 = self.NAND.evaluate([inputs[1], inputs[1]])
-        return self.NAND.evaluate([temp_1, temp_2])
+        temp_1 = self.NAND.evaluate(inputs)
+        temp_2 = self.NAND.evaluate([temp_1, inputs[0]])
+        temp_3 = self.NAND.evaluate([temp_1, inputs[1]])
+
+        return self.NAND.evaluate([temp_2, temp_3])
