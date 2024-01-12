@@ -1,11 +1,11 @@
 from typing import TypeVar, List, Callable
 
-from BinaryGate import BinaryGate
+from FHEBinaryGate import FHEBinaryGate
 
 CypheredTextType = TypeVar('CypheredTextType')
 
 
-class ANDGate(BinaryGate[CypheredTextType]):
+class ANDGate(FHEBinaryGate[CypheredTextType]):
 
     def __init__(self, mul: Callable[[CypheredTextType, CypheredTextType], CypheredTextType]):
         self.mul = mul

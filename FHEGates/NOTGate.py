@@ -1,11 +1,11 @@
 from typing import TypeVar, List
 
-from BinaryGate import BinaryGate
+from FHEBinaryGate import FHEBinaryGate
 
 CypheredTextType = TypeVar('CypheredTextType')
 
 
-class NOTGate(BinaryGate[CypheredTextType]):
+class NOTGate(FHEBinaryGate[CypheredTextType]):
 
     def __init__(self, one: CypheredTextType):
         self.one = one

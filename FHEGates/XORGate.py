@@ -1,11 +1,11 @@
 from typing import TypeVar, List
 
-from BinaryGate import BinaryGate
+from FHEBinaryGate import FHEBinaryGate
 
 CypheredTextType = TypeVar('CypheredTextType')
 
 
-class XORGate(BinaryGate[CypheredTextType]):
+class XORGate(FHEBinaryGate[CypheredTextType]):
 
     def inputs(self) -> int:
         return 2

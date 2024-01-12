@@ -4,7 +4,7 @@ from typing import Tuple, Callable, List, Dict
 import numpy as np
 
 from FHEBinaryCircuit import FHEBinaryCircuit
-from BinaryGate import BinaryGate
+from FHEBinaryGate import FHEBinaryGate
 from FHEScheme import FHEScheme
 
 from LWE.lwe_utils import generate_error_matrix, generate_error_vector, generate_random_matrix, generate_gadget_matrix, \
@@ -17,16 +17,36 @@ KeyGenType = Tuple[int, int, Callable[[], int]]
 
 
 class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenType]):
+    """
+     LWEGSW (LWE based GSW) is an implementation of a Fully Homomorphic Encryption (FHE) scheme
+     based on LWE.
+
+     The LWEGSW class extends the abstract FHEScheme class and provides concrete implementations for
+     key generation, encryption, decryption, and circuit evaluation.
+
+     Attributes:
+         q: Modulus for the LWE ring.
+         n: Number of columns of the matrices.
+         m: n times the logarithm (base 2) of the modulus q.
+         error_function: Callable function to generate random error terms.
+         G: Gadget matrix used in encryption.
+
+     Methods:
+         keygen: Generates a key pair for the LWEGSW scheme.
+         encrypt: Encrypts a boolean bit into a cyphered text.
+         decrypt: Decrypts a cyphered text to obtain the original boolean bit.
+         evaluate: Evaluates a binary circuit for a given set of cyphered text inputs.
+         _mul: Internal method for multiplication operation in LWEGSW.
+     """
     q: int
     n: int
     m: int
     error_function: Callable[[], int]
     G: np.ndarray
-    gates: Dict[str, BinaryGate[CypheredTextType]]
 
     def keygen(self, parameters: KeyGenType) -> (PrivateKeyType, PublicKeyType):
         """
-        Generates a key pair for the LWE-GSW scheme.
+        Generates a key pair.
 
         :param parameters: A tuple containing q, n and an error function.
         :return: A tuple containing the public key and the private key.
@@ -50,6 +70,13 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         return public_key, private_key
 
     def encrypt(self, public_key: PublicKeyType, bit: bool) -> CypheredTextType:
+        """
+        Encrypts a boolean bit into a cyphered text.
+
+        :param public_key: Public key used for encryption.
+        :param bit: The boolean bit to be encrypted (True or False).
+        :return: A cyphered text representing the encrypted bit.
+        """
 
         # Dimension check for the public_key
         if public_key.shape != (self.m, self.n):
@@ -67,6 +94,13 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         return CT % self.q
 
     def decrypt(self, secret_key: PrivateKeyType, CT: CypheredTextType) -> bool:
+        """
+        Decrypts a cyphered text.
+
+        :param secret_key: Secret key used for decryption.
+        :param CT: Cyphered text to be decrypted.
+        :return: The decrypted boolean bit.
+        """
 
         # Dimension check for the secret key
         if secret_key.shape != (self.n, 1):
@@ -87,6 +121,14 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         return (raw_decrypt[log_q - 1] > self.q / 4) and (raw_decrypt[log_q - 1] < 3 * self.q / 4)
 
     def evaluate(self, binary_circuit: List[List[str]], inputs: List[CypheredTextType]) -> CypheredTextType:
+        """
+        Evaluates a binary circuit for a given set of cyphered text inputs.
+
+        :param binary_circuit: List of circuit depths where each depth consists of strings with gate names:
+                               AND, NAND, OR, XOR, NOT, or WIRE (no gate).
+        :param inputs: Cyphered texts for which to evaluate the circuit.
+        :return: The cyphered text result after evaluating the circuit.
+        """
 
         circuit = FHEBinaryCircuit[CypheredTextType](self.G, lambda ct1, ct2: self._mul(ct1, ct2))
 
@@ -96,6 +138,13 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         return circuit.evaluate(inputs)
 
     def _mul(self, CT1: CypheredTextType, CT2: CypheredTextType) -> CypheredTextType:
+        """
+        Internal method for multiplication operation.
+
+        :param CT1: First cyphered text for multiplication.
+        :param CT2: Second cyphered text for multiplication.
+        :return: The result of the multiplication operation.
+        """
 
         if CT1.shape != (self.m, self.n):
             raise ValueError(
