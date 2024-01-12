@@ -1,7 +1,7 @@
 import unittest
 
 from LWE.LWE_GSW import LWEGSW
-from LWE.utils import lwe_sample
+from LWE.lwe_utils import lwe_sample
 from tests_utils import multiple_generic_tests
 
 n = 5

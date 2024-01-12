@@ -8,27 +8,6 @@ def lwe_sample(n: int, q: int) -> int:
     return math.floor(np.random.normal(0, math.sqrt(n))) % q
 
 
-def generate_random_matrix(m: int, n: int, q: int) -> np.ndarray:
-    """
-    Generates a random matrix of size m x n with integers modulus q.
-    """
-    return np.random.randint(0, q, size=(m, n), dtype=np.int32)
-
-
-def generate_error_vector(m: int, error_function: Callable[[], int]) -> np.ndarray:
-    """
-    Generates a vector of size m using an error function.
-    """
-    return np.array([error_function() for _ in range(m)], dtype=np.int32).reshape(-1, 1)
-
-
-def generate_error_matrix(m: int, n: int, error_function: Callable[[], int]) -> np.ndarray:
-    """
-    Generates a matrix of size m x n using an error function.
-    """
-    return np.array([[error_function() for _ in range(n)] for _ in range(m)], dtype=np.int32)
-
-
 def generate_gadget_matrix(q: int, n: int) -> np.ndarray:
     """
     Generates the G gadget matrix of size m x n
@@ -53,3 +32,24 @@ def bit_decomp(matrix: np.ndarray, q: int) -> np.ndarray:
             for k in range(decomp):
                 result[i, j * decomp + k] = (matrix[i, j] >> k) & 1
     return result
+
+
+def generate_random_matrix(m: int, n: int, q: int) -> np.ndarray:
+    """
+    Generates a random matrix of size m x n with integers modulus q.
+    """
+    return np.random.randint(0, q, size=(m, n), dtype=np.int32)
+
+
+def generate_error_vector(m: int, error_function: Callable[[], int]) -> np.ndarray:
+    """
+    Generates a vector of size m using an error function.
+    """
+    return np.array([error_function() for _ in range(m)], dtype=np.int32).reshape(-1, 1)
+
+
+def generate_error_matrix(m: int, n: int, error_function: Callable[[], int]) -> np.ndarray:
+    """
+    Generates a matrix of size m x n using an error function.
+    """
+    return np.array([[error_function() for _ in range(n)] for _ in range(m)], dtype=np.int32)

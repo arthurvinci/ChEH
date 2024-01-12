@@ -8,7 +8,7 @@ from BinaryGate import BinaryGate
 from FHEScheme import FHEScheme
 from WireGate import WireGate
 
-from LWE.utils import generate_error_matrix, generate_error_vector, generate_gadget_matrix, generate_random_matrix, \
+from LWE.lwe_utils import generate_error_matrix, generate_error_vector, generate_random_matrix, generate_gadget_matrix, \
     bit_decomp
 from LWE.Gates.NOTGate import NOTGate
 from LWE.Gates.NANDGate import NANDGate
@@ -38,9 +38,7 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         :return: A tuple containing the public key and the private key.
         """
 
-        self.q = parameters[0]
-        self.n = parameters[1]
-        self.error_function = parameters[2]
+        self.q, self.n, self.error_function = parameters[:3]
         self.m = self.n * math.ceil(math.log2(self.q))
         self.G = generate_gadget_matrix(self.q, self.n)
 
