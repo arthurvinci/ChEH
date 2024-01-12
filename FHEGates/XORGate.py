@@ -1,19 +1,14 @@
 from typing import TypeVar, List
 
-import numpy as np
-
 from BinaryGate import BinaryGate
 
 CypheredTextType = TypeVar('CypheredTextType')
 
 
-class NOTGate(BinaryGate[CypheredTextType]):
-
-    def __init__(self, G: np.ndarray):
-        self.G = G
+class XORGate(BinaryGate[CypheredTextType]):
 
     def inputs(self) -> int:
-        return 1
+        return 2
 
     def evaluate(self, inputs: List[CypheredTextType]) -> CypheredTextType:
-        return self.G - inputs[0]
+        return inputs[0] + inputs[1]

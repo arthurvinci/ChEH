@@ -3,18 +3,12 @@ from typing import Tuple, Callable, List, Dict
 
 import numpy as np
 
-from BinaryCircuit import BinaryCircuit
+from FHEBinaryCircuit import FHEBinaryCircuit
 from BinaryGate import BinaryGate
 from FHEScheme import FHEScheme
-from WireGate import WireGate
 
 from LWE.lwe_utils import generate_error_matrix, generate_error_vector, generate_random_matrix, generate_gadget_matrix, \
     bit_decomp
-from LWE.Gates.NOTGate import NOTGate
-from LWE.Gates.NANDGate import NANDGate
-from LWE.Gates.ANDGate import ANDGate
-from LWE.Gates.ORGate import ORGate
-from LWE.Gates.XORGate import XORGate
 
 PublicKeyType = np.ndarray
 PrivateKeyType = np.ndarray
@@ -41,8 +35,6 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         self.q, self.n, self.error_function = parameters[:3]
         self.m = self.n * math.ceil(math.log2(self.q))
         self.G = generate_gadget_matrix(self.q, self.n)
-
-        self._init_gates()
 
         A = generate_random_matrix(self.m, self.n - 1, self.q)
         e = generate_error_vector(self.m, self.error_function)
@@ -96,37 +88,12 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
 
     def evaluate(self, binary_circuit: List[List[str]], inputs: List[CypheredTextType]) -> CypheredTextType:
 
-        circuit = BinaryCircuit[CypheredTextType]()
+        circuit = FHEBinaryCircuit[CypheredTextType](self.G, lambda ct1, ct2: self._mul(ct1, ct2))
 
-        for str_depth in binary_circuit:
-            depth = [self._get_gate(str_gate) for str_gate in str_depth]
+        for depth in binary_circuit:
             circuit.add_depth(depth)
 
         return circuit.evaluate(inputs)
-
-    def _get_gate(self, name: str) -> BinaryGate[CypheredTextType]:
-        raw_name = name.lower()
-
-        ret = self.gates.get(raw_name)
-
-        if ret is None:
-            raise ValueError("Could not recognise gate {}!".format(name))
-        else:
-            return ret
-
-    def _init_gates(self) -> None:
-
-        self.gates = dict()
-
-        mul: Callable[[CypheredTextType, CypheredTextType], CypheredTextType] = lambda CT1, CT2: self._mul(CT1, CT2)
-
-        nand_gate = NANDGate[CypheredTextType](self.G, mul)
-        self.gates["nand"] = nand_gate
-        self.gates["and"] = ANDGate[CypheredTextType](nand_gate)
-        self.gates["or"] = ORGate[CypheredTextType](nand_gate)
-        self.gates["xor"] = XORGate[CypheredTextType](nand_gate)
-        self.gates["not"] = NOTGate[CypheredTextType](self.G)
-        self.gates["wire"] = WireGate[CypheredTextType]()
 
     def _mul(self, CT1: CypheredTextType, CT2: CypheredTextType) -> CypheredTextType:
 

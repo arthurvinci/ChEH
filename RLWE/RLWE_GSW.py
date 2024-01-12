@@ -4,6 +4,7 @@ from sage.structure.element import Vector
 from typing import List, Tuple, Callable, Dict
 
 from BinaryGate import BinaryGate
+from FHEBinaryCircuit import FHEBinaryCircuit
 from FHEScheme import FHEScheme
 from RLWE.rlwe_utils import generate_error_poly, generate_random_poly_vector, generate_error_poly_matrix, \
     generate_gadget_matrix, matrix_poly_bit_decomp
@@ -79,7 +80,13 @@ class RLWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenT
         return self.q // 4 <= coeff <= 3 * self.q // 4
 
     def evaluate(self, binary_circuit: List[List[str]], inputs: List[CypheredTextType]) -> CypheredTextType:
-        pass
+
+        circuit = FHEBinaryCircuit[CypheredTextType](self.G, lambda ct1, ct2: self._mul(ct1, ct2))
+
+        for depth in binary_circuit:
+            circuit.add_depth(depth)
+
+        return circuit.evaluate(inputs)
 
     def _mul(self, CT1: CypheredTextType, CT2: CypheredTextType) -> CypheredTextType:
         if CT1.nrows() != 2 * self.log_q or CT1.ncols() != 2:

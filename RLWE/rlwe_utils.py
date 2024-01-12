@@ -16,11 +16,20 @@ def generate_gadget_matrix(RQ: QuotientRing, n: int) -> Matrix:
 
 
 def poly_bit_decomp(RQ: QuotientRing, poly, n: int) -> vector:
+    """
+    Generates the bit decomposition for a polynomial.
+
+    :param RQ: The quotient ring Z_q[X]/(X^N + 1).
+    :param poly: The input polynomial for bit decomposition.
+    :param n:number of bits of the decomposition.
+    :return: A vector representing the result of polynomial bit decomposition.
+    """
     result = zero_vector(RQ, n)
     coeffs = poly.list()
+
     for k in range(len(coeffs)):
         for l in range(n):
-            new_coeff = RQ( (coeffs[k] >> l) % 2)
+            new_coeff = RQ((coeffs[k] >> l) % 2)
             result[l] += new_coeff * RQ.gen() ** k
 
     return result
@@ -30,7 +39,7 @@ def matrix_poly_bit_decomp(RQ: QuotientRing, matrix: Matrix, n: int) -> Matrix:
     """
     Generates the polynomial bit decomposition matrix of a given polynomial matrix.
 
-    :param RQ: The quotient ring Z_q[X]/(X^N + 1) where q is the characteristic.
+    :param RQ: The quotient ring Z_q[X]/(X^N + 1).
     :param matrix: Polynomial matrix for which to perform the polynomial bit decomposition.
     :param n: number of bits of the decomposition
     :return: The resulting polynomial bit decomposition matrix.

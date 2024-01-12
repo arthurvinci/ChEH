@@ -1,21 +1,37 @@
-from typing import TypeVar, Generic, List
+from typing import TypeVar, Generic, List, Callable
 from BinaryGate import BinaryGate
+from FHEGates.ANDGate import ANDGate
+from FHEGates.NANDGate import NANDGate
+from FHEGates.NOTGate import NOTGate
+from FHEGates.ORGate import ORGate
+from FHEGates.XORGate import XORGate
+from WireGate import WireGate
 
 CypheredTextType = TypeVar('CypheredTextType')
 
 
-class BinaryCircuit(Generic[CypheredTextType]):
+class FHEBinaryCircuit(Generic[CypheredTextType]):
 
-    def __init__(self):
+    def __init__(self, one: CypheredTextType, mul: Callable[[CypheredTextType, CypheredTextType], CypheredTextType]):
         self.depths: List[List[BinaryGate[CypheredTextType]]] = []
+        self.gates = dict()
 
-    def add_depth(self, depth: List[BinaryGate[CypheredTextType]]) -> None:
+        nand_gate = NANDGate[CypheredTextType](one, mul)
+        self.gates["nand"] = nand_gate
+        self.gates["and"] = ANDGate[CypheredTextType](mul)
+        self.gates["or"] = ORGate[CypheredTextType](mul)
+        self.gates["xor"] = XORGate[CypheredTextType]()
+        self.gates["not"] = NOTGate[CypheredTextType](one)
+        self.gates["wire"] = WireGate[CypheredTextType]()
+
+    def add_depth(self, str_depth: List[str]) -> None:
         """
         Adds a depth to the circuit.
-        :param depth: new gate depth
+        :param str_depth: new gate depth
         :return:
         """
 
+        depth = [self._get_gate(str_gate) for str_gate in str_depth]
         # Check compatibility with previous depth if needed
         if len(self.depths) > 0:
             # outputs are equal to number of gates
@@ -41,6 +57,16 @@ class BinaryCircuit(Generic[CypheredTextType]):
             result = evaluate_depth(depth, result)
 
         return result
+
+    def _get_gate(self, name: str) -> BinaryGate[CypheredTextType]:
+        raw_name = name.lower()
+
+        ret = self.gates.get(raw_name)
+
+        if ret is None:
+            raise ValueError("Could not recognise gate {}!".format(name))
+        else:
+            return ret
 
 
 def inputs_amount(depth: List[BinaryGate[CypheredTextType]]) -> int:
