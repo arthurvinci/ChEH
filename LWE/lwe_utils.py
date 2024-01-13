@@ -4,10 +4,6 @@ from typing import Callable
 import numpy as np
 
 
-def lwe_sample(n: int, q: int) -> int:
-    return math.floor(np.random.normal(0, math.sqrt(n))) % q
-
-
 def generate_gadget_matrix(q: int, n: int) -> np.ndarray:
     """
     Generates the G gadget matrix of size m x n

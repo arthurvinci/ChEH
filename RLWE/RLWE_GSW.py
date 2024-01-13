@@ -52,7 +52,8 @@ class RLWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenT
         """
         Generates a key pair.
 
-        :param parameters: Tuple containing modulus q, ring dimension N, and error distribution function.
+        :param parameters: Tuple containing modulus q, n such that 2**N is the ring dimension, and error distribution
+                           function.
         :return: A tuple containing the private key and the public key.
         """
 
@@ -90,13 +91,11 @@ class RLWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenT
         :return: A cyphered text representing the encrypted bit.
         """
 
-        if public_key.nrows() != 1 or public_key.ncols() != 2:
-            raise ValueError(f"Invalid dimensions for the public key: should be a row vector of 2 elements")
-
-        t = generate_random_poly_vector(self.R2, 2 * self.log_q)
+        t = generate_random_poly_vector(self.RQ, 2 * self.log_q)
         f = generate_error_poly_matrix(self.RQ, self.N, 2 * self.log_q, 2, self.error_distribution)
 
-        result = t * public_key + f
+        result = t * public_key.T + f
+
         if bit:
             result += self.G
 
@@ -111,16 +110,9 @@ class RLWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenT
         :return: The decrypted boolean bit.
         """
 
-        if secret_key.nrows() != 2 or secret_key.ncols() != 1:
-            raise ValueError(f"Invalid dimensions for the secret key: should be a column vector of 2 elements")
-
-        if ct.nrows() != 2 * self.log_q or ct.ncols() != 2:
-            raise ValueError(
-                f"Invalid dimensions for the cyphered text: should be a vector of {2 * self.log_q} x {2} elements (input "
-                f"is {ct.nrows()} x {ct.ncols()})")
-
         raw_decrypt = ct * secret_key
-        coeff = raw_decrypt[self.log_q - 1]
+        poly = raw_decrypt[self.log_q - 1]
+        coeff = poly.list()[0]
         return self.q // 4 <= coeff <= 3 * self.q // 4
 
     def evaluate(self, binary_circuit: List[List[str]], inputs: List[CypheredTextType]) -> CypheredTextType:

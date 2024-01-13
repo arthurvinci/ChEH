@@ -79,7 +79,8 @@ def generate_random_poly_vector(RQ: QuotientRing, n: int):
     :param n: The size of the vector.
     :return: A vector of random polynomials in the quotient ring RQ.
     """
-    return vector([RQ.random_element() for _ in range(n)])
+    Z2_X = PolynomialRing(GF(2), 'X')
+    return column_matrix([RQ(Z2_X.random_element()) for _ in range(n)])
 
 
 def generate_error_poly_matrix(RQ: QuotientRing, d: int, m: int, n: int, error_distribution: Callable[[], int]):
