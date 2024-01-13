@@ -3,18 +3,12 @@ from typing import Tuple, Callable, List, Dict
 
 import numpy as np
 
-from BinaryCircuit import BinaryCircuit
-from BinaryGate import BinaryGate
+from FHEBinaryCircuit import FHEBinaryCircuit
+from FHEBinaryGate import FHEBinaryGate
 from FHEScheme import FHEScheme
-from WireGate import WireGate
 
-from LWE.utils import generate_error_matrix, generate_error_vector, generate_gadget_matrix, generate_random_matrix, \
+from LWE.lwe_utils import generate_error_matrix, generate_error_vector, generate_random_matrix, generate_gadget_matrix, \
     bit_decomp
-from LWE.Gates.NOTGate import NOTGate
-from LWE.Gates.NANDGate import NANDGate
-from LWE.Gates.ANDGate import ANDGate
-from LWE.Gates.ORGate import ORGate
-from LWE.Gates.XORGate import XORGate
 
 PublicKeyType = np.ndarray
 PrivateKeyType = np.ndarray
@@ -23,28 +17,44 @@ KeyGenType = Tuple[int, int, Callable[[], int]]
 
 
 class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenType]):
+    """
+     LWEGSW (LWE based GSW) is an implementation of a Fully Homomorphic Encryption (FHE) scheme
+     based on LWE.
+
+     The LWEGSW class extends the abstract FHEScheme class and provides concrete implementations for
+     key generation, encryption, decryption, and circuit evaluation.
+
+     Attributes:
+         q: Modulus for the LWE ring.
+         n: Number of columns of the matrices.
+         m: n times the logarithm (base 2) of the modulus q.
+         error_function: Callable function to generate random error terms.
+         G: Gadget matrix used in encryption.
+
+     Methods:
+         keygen: Generates a key pair for the LWEGSW scheme.
+         encrypt: Encrypts a boolean bit into a cyphered text.
+         decrypt: Decrypts a cyphered text to obtain the original boolean bit.
+         evaluate: Evaluates a binary circuit for a given set of cyphered text inputs.
+         _mul: Internal method for multiplication operation in LWEGSW.
+     """
     q: int
     n: int
     m: int
     error_function: Callable[[], int]
     G: np.ndarray
-    gates: Dict[str, BinaryGate[CypheredTextType]]
 
     def keygen(self, parameters: KeyGenType) -> (PrivateKeyType, PublicKeyType):
         """
-        Generates a key pair for the LWE-GSW scheme.
+        Generates a key pair.
 
         :param parameters: A tuple containing q, n and an error function.
         :return: A tuple containing the public key and the private key.
         """
 
-        self.q = parameters[0]
-        self.n = parameters[1]
-        self.error_function = parameters[2]
+        self.q, self.n, self.error_function = parameters[:3]
         self.m = self.n * math.ceil(math.log2(self.q))
         self.G = generate_gadget_matrix(self.q, self.n)
-
-        self._init_gates()
 
         A = generate_random_matrix(self.m, self.n - 1, self.q)
         e = generate_error_vector(self.m, self.error_function)
@@ -60,6 +70,13 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         return public_key, private_key
 
     def encrypt(self, public_key: PublicKeyType, bit: bool) -> CypheredTextType:
+        """
+        Encrypts a boolean bit into a cyphered text.
+
+        :param public_key: Public key used for encryption.
+        :param bit: The boolean bit to be encrypted (True or False).
+        :return: A cyphered text representing the encrypted bit.
+        """
 
         # Dimension check for the public_key
         if public_key.shape != (self.m, self.n):
@@ -77,6 +94,13 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         return CT % self.q
 
     def decrypt(self, secret_key: PrivateKeyType, CT: CypheredTextType) -> bool:
+        """
+        Decrypts a cyphered text.
+
+        :param secret_key: Secret key used for decryption.
+        :param CT: Cyphered text to be decrypted.
+        :return: The decrypted boolean bit.
+        """
 
         # Dimension check for the secret key
         if secret_key.shape != (self.n, 1):
@@ -97,40 +121,30 @@ class LWEGSW(FHEScheme[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenTy
         return (raw_decrypt[log_q - 1] > self.q / 4) and (raw_decrypt[log_q - 1] < 3 * self.q / 4)
 
     def evaluate(self, binary_circuit: List[List[str]], inputs: List[CypheredTextType]) -> CypheredTextType:
+        """
+        Evaluates a binary circuit for a given set of cyphered text inputs.
 
-        circuit = BinaryCircuit[CypheredTextType]()
+        :param binary_circuit: List of circuit depths where each depth consists of strings with gate names:
+                               AND, NAND, OR, XOR, NOT, or WIRE (no gate).
+        :param inputs: Cyphered texts for which to evaluate the circuit.
+        :return: The cyphered text result after evaluating the circuit.
+        """
 
-        for str_depth in binary_circuit:
-            depth = [self._get_gate(str_gate) for str_gate in str_depth]
+        circuit = FHEBinaryCircuit[CypheredTextType](self.G, lambda ct1, ct2: self._mul(ct1, ct2))
+
+        for depth in binary_circuit:
             circuit.add_depth(depth)
 
         return circuit.evaluate(inputs)
 
-    def _get_gate(self, name: str) -> BinaryGate[CypheredTextType]:
-        raw_name = name.lower()
-
-        ret = self.gates.get(raw_name)
-
-        if ret is None:
-            raise ValueError("Could not recognise gate {}!".format(name))
-        else:
-            return ret
-
-    def _init_gates(self) -> None:
-
-        self.gates = dict()
-
-        mul: Callable[[CypheredTextType, CypheredTextType], CypheredTextType] = lambda CT1, CT2: self._mul(CT1, CT2)
-
-        nand_gate = NANDGate[CypheredTextType](self.G, mul)
-        self.gates["nand"] = nand_gate
-        self.gates["and"] = ANDGate[CypheredTextType](nand_gate)
-        self.gates["or"] = ORGate[CypheredTextType](nand_gate)
-        self.gates["xor"] = XORGate[CypheredTextType](nand_gate)
-        self.gates["not"] = NOTGate[CypheredTextType](self.G)
-        self.gates["wire"] = WireGate[CypheredTextType]()
-
     def _mul(self, CT1: CypheredTextType, CT2: CypheredTextType) -> CypheredTextType:
+        """
+        Internal method for multiplication operation.
+
+        :param CT1: First cyphered text for multiplication.
+        :param CT2: Second cyphered text for multiplication.
+        :return: The result of the multiplication operation.
+        """
 
         if CT1.shape != (self.m, self.n):
             raise ValueError(

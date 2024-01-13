@@ -1,3 +1,4 @@
+import math
 import timeit
 
 import numpy as np
@@ -53,3 +54,7 @@ def multiple_generic_tests(func, args, expected_result, nb_of_tests, test_name):
     assert nb_worked == nb_of_tests, f"Only {nb_worked}/{nb_of_tests} test worked for test {test_name}"
 
     print(f"All {nb_of_tests} passed for {test_name} in {execution_time:.6f} seconds.")
+
+
+def lwe_sample(n: int, q: int) -> int:
+    return math.floor(np.random.normal(0, math.sqrt(n))) % q

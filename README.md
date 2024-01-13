@@ -1,2 +1,5 @@
 # ChEH
-Une bibliothèque de chiffrement entièrement homomorphique
+A Fully Homomorphic Encryption library
+
+## Dependencies
+Sage is needed to run the RGSW version

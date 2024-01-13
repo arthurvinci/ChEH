@@ -1,13 +1,14 @@
 from typing import TypeVar, List
 
-from BinaryGate import BinaryGate
+from FHEBinaryGate import FHEBinaryGate
 
 CypheredTextType = TypeVar('CypheredTextType')
 
 
-class WireGate(BinaryGate[CypheredTextType]):
+class XORGate(FHEBinaryGate[CypheredTextType]):
+
     def inputs(self) -> int:
-        return 1
+        return 2
 
     def evaluate(self, inputs: List[CypheredTextType]) -> CypheredTextType:
-        return inputs[0]
+        return inputs[0] + inputs[1]

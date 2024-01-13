@@ -8,7 +8,18 @@ KeyGenType = TypeVar('KeyGenType')
 
 
 class FHEScheme(ABC, Generic[PublicKeyType, PrivateKeyType, CypheredTextType, KeyGenType]):
+    """
+    Abstract base class representing a Fully Homomorphic Encryption (FHE) scheme.
 
+    This class defines the common interface for FHE schemes, including methods for key generation,
+    encryption, decryption, and circuit evaluation.
+
+    Methods:
+        keygen: Generates a key pair for the FHE scheme.
+        encrypt: Encrypts a boolean bit into a cyphered text.
+        decrypt: Decrypts a cyphered text to obtain the original boolean bit.
+        evaluate: Evaluates a binary circuit for a given set of cyphered text inputs.
+    """
     @abstractmethod
     def keygen(self, parameters: KeyGenType) -> (PrivateKeyType, PublicKeyType):
         """

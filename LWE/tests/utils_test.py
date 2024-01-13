@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from LWE.utils import bit_decomp, generate_gadget_matrix, generate_random_matrix
+from LWE.lwe_utils import generate_random_matrix, generate_gadget_matrix, bit_decomp
 from tests_utils import generic_test
 
 
